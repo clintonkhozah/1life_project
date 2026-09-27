@@ -54,6 +54,5 @@ Start the database from the repository root with `docker compose up -d db`. In o
 ```powershell
 cd client; npm run build
 cd ..\server; npm run build
-```
 
-Before submission, create/push the GitHub repository, invite `Jacquesp@1life.co.za` and `wernerm@1life.co.za` as contributors, and make regular commits. Collaborator invites and commits must be completed from your GitHub account.
+
