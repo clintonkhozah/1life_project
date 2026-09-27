@@ -54,5 +54,5 @@ Start the database from the repository root with `docker compose up -d db`. In o
 ```powershell
 cd client; npm run build
 cd ..\server; npm run build
-
+//////
 
