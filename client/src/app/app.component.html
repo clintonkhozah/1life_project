@@ -1,0 +1,395 @@
+<main id="top" class="page-shell">
+  <header class="app-heading">
+    <h1 class="game-title">Words game</h1>
+    <button class="guide-trigger" type="button" (click)="guideOpen.set(true)" aria-label="How to play" title="How to play">
+      <span>How to play</span>
+    </button>
+  </header>
+
+  <nav class="tabs" aria-label="Workspace views">
+    <button
+      class="tab"
+      [class.active]="activeTab() === 'build'"
+      (click)="activeTab.set('build')"
+    >
+      <lucide-angular [name]="'PenLine'" aria-hidden="true"></lucide-angular>
+      Build a sentence <span class="tab-count">{{ selected().length }}</span>
+    </button>
+    <button
+      class="tab"
+      [class.active]="activeTab() === 'saved'"
+      (click)="activeTab.set('saved')"
+    >
+      <lucide-angular [name]="'Bookmark'" aria-hidden="true"></lucide-angular>
+      Saved sentences <span class="tab-count">{{ sentences().length }}</span>
+    </button>
+  </nav>
+
+  @if (notice()) {
+    <div class="notice" role="status">
+      <lucide-angular [name]="'CircleCheck'" aria-hidden="true"></lucide-angular
+      >{{ notice() }}
+    </div>
+  }
+  @if (saveError()) {
+    <div class="error-banner" role="alert">{{ saveError() }}</div>
+  }
+  @if (editError()) {
+    <div class="error-banner" role="alert">{{ editError() }}</div>
+  }
+
+  @if (activeTab() === "build") {
+    <section class="builder-layout" aria-label="Sentence builder">
+      <div class="word-library">
+        <div class="section-heading">
+          <div>
+            <div class="eyebrow">Step 1</div>
+            <h2>Choose a category</h2>
+          </div>
+          <span class="tiny-count">{{ types().length }} types</span>
+        </div>
+        <p class="picker-help">Choose a category, then type a word or browse its library.</p>
+        @if (typesLoading()) {
+          <p class="picker-message" role="status">Loading word types…</p>
+        } @else if (typesError()) {
+          <div class="picker-message error-message" role="alert">
+            <span>{{ typesError() }}</span
+            ><button class="retry-button" (click)="loadWordTypes()">
+              Try again
+            </button>
+          </div>
+        } @else if (!types().length) {
+          <p class="picker-message">No word types are available yet.</p>
+        } @else {
+          <div class="type-select-wrap">
+            <div class="type-select-control">
+            <select class="type-select" aria-label="Choose a word category" [ngModel]="activeType()?.id" (ngModelChange)="selectTypeById($event)">
+              @for (type of types(); track trackType($index, type)) {
+                <option [ngValue]="type.id">{{ type.name }}</option>
+              }
+            </select>
+            </div>
+          </div>
+        }
+        @if (activeType(); as type) {
+          <div class="category-content" [class.category-enter-a]="categoryMotion() % 2 === 0" [class.category-enter-b]="categoryMotion() % 2 !== 0">
+            <div class="word-section-heading">
+            <div><div class="eyebrow">Your library</div><h3>{{ type.name }} words</h3></div>
+            <div class="library-heading-actions">
+              <span class="tiny-count">{{ wordsLoading() ? "Loading…" : words().length + " available" }}</span>
+              <button class="library-add-button" type="button" [attr.aria-label]="'Add a word to ' + type.name" [title]="'Add a word to ' + type.name" (click)="toggleLibraryAddForm()">
+                <lucide-angular [name]="'Plus'" aria-hidden="true"></lucide-angular>
+              </button>
+            </div>
+          </div>
+          @if (addWordOpen()) {
+            <form class="library-add-form" (ngSubmit)="saveLibraryWord(type)">
+              <input type="text" name="newLibraryWord" [ngModel]="newLibraryWord()" (ngModelChange)="newLibraryWord.set($event)" [attr.aria-label]="'New ' + type.name.toLowerCase() + ' word'" [placeholder]="'New ' + type.name.toLowerCase() + ' word'" maxlength="80" required />
+              <button type="submit" [disabled]="!newLibraryWord().trim() || addingWord()">
+                @if (addingWord()) { <span class="save-spinner" aria-hidden="true"></span> } @else { Add word }
+              </button>
+              <button class="library-add-cancel" type="button" aria-label="Cancel adding word" (click)="addWordOpen.set(false); newLibraryWord.set(''); addWordError.set('')"><lucide-angular [name]="'X'" aria-hidden="true"></lucide-angular></button>
+              @if (addWordError()) { <p class="library-add-error" role="alert">{{ addWordError() }}</p> }
+            </form>
+          }
+          @if (wordsError()) {
+            <div class="picker-message error-message" role="alert"><span>{{ wordsError() }}</span><button class="retry-button" (click)="loadWords(type)">Try again</button></div>
+          } @else if (wordsLoading()) {
+            <p class="picker-message" role="status">Loading {{ type.name.toLowerCase() }} words…</p>
+          } @else {
+            <label class="search-box library-filter">
+              <lucide-angular [name]="'Search'" aria-hidden="true"></lucide-angular>
+              <input type="search" placeholder="Filter {{ type.name.toLowerCase() }} words" [ngModel]="libraryFilter()" (ngModelChange)="libraryFilter.set($event)" [attr.aria-label]="'Filter ' + type.name.toLowerCase() + ' words'" />
+              @if (libraryFilter()) {
+                <button class="clear-search" type="button" aria-label="Clear library filter" title="Clear library filter" (click)="libraryFilter.set('')">
+                  <lucide-angular [name]="'X'" aria-hidden="true"></lucide-angular>
+                </button>
+              }
+            </label>
+            <div class="word-list-help">Drag a word into your sentence, or click it to add.</div>
+            <div class="word-grid" aria-live="polite">
+              @for (word of filteredWords(); track trackWord($index, word)) {
+                <button class="word-tile" draggable="true" (dragstart)="startWordDrag(word, $event)" (click)="addWord(word)" [attr.aria-label]="'Add or drag ' + word.value"><span>{{ word.value }}</span><lucide-angular [name]="'Plus'" aria-hidden="true"></lucide-angular></button>
+              } @empty {
+                <p class="empty-words">{{ words().length ? 'No words match this filter.' : 'No words are available in this category yet.' }}</p>
+              }
+            </div>
+          }
+          </div>
+        }
+        @if (selected().length) {
+          <div class="library-foot">
+            <span class="status-dot"></span>
+            <span>{{ selected().length }} words selected</span>
+          </div>
+        }
+      </div>
+
+      <aside class="sentence-panel">
+        <div class="section-heading">
+          <div>
+            <div class="eyebrow">Step 2</div>
+            <h2>Build your sentence <span class="live-mark">LIVE</span></h2>
+          </div>
+          <button
+            class="icon-button"
+            aria-label="Clear sentence"
+            title="Clear sentence"
+            (click)="selected.set([]); editingId.set(null)"
+          >
+            <lucide-angular
+              [name]="'RotateCcw'"
+              aria-hidden="true"
+            ></lucide-angular>
+          </button>
+        </div>
+        <div class="typeahead sentence-input">
+          <label class="search-box">
+            <lucide-angular [name]="'PenLine'" aria-hidden="true"></lucide-angular>
+            <input
+              type="search"
+              placeholder="Type a word to build your sentence…"
+              [ngModel]="search()"
+              (ngModelChange)="onWordInput($event)"
+              aria-label="Type a word to add to your sentence"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-controls="word-suggestions"
+              [attr.aria-expanded]="!!search().trim()"
+              autocomplete="off"
+            />
+            @if (search()) {
+              <button class="clear-search" type="button" aria-label="Clear typed word" title="Clear typed word" (click)="clearWordInput()">
+                <lucide-angular [name]="'X'" aria-hidden="true"></lucide-angular>
+              </button>
+            }
+          </label>
+          @if (search().trim()) {
+            <div class="suggestion-panel" id="word-suggestions" role="listbox" aria-label="Word suggestions from all categories">
+              @if (wordInputError()) {
+                <p class="suggestion-note">{{ wordInputError() }}</p>
+              } @else if (suggestionsLoading()) {
+                <p class="suggestion-note" role="status">Finding words for your sentence…</p>
+              } @else if (suggestionsError()) {
+                <p class="suggestion-note error-text">Suggestions are temporarily unavailable.</p>
+              } @else {
+                @for (suggestion of suggestions(); track suggestion.id) {
+                  <button class="suggestion-option" type="button" role="option" (click)="addWord(suggestion); clearWordInput()">
+                    <span class="suggestion-word"><strong>{{ suggestion.value.slice(0, search().trim().length) }}</strong>{{ suggestion.value.slice(search().trim().length) }}</span>
+                    <span class="suggestion-category">{{ wordTypeName(suggestion) }}</span>
+                    @if (suggestion.usage_count) {
+                      <span class="usage-count">Used {{ suggestion.usage_count }} times</span>
+                    }
+                  </button>
+                }
+                @if (canAddTypedWord()) {
+                  <div class="new-word-option">
+                    <span class="new-word-label">Add “{{ search().trim() }}” as</span>
+                    <select class="new-word-type-select" aria-label="Choose the category for this new word" [ngModel]="newWordTypeId()" (ngModelChange)="newWordTypeId.set($event ? +$event : null)">
+                      <option [ngValue]="null">Choose category</option>
+                      @for (wordType of types(); track wordType.id) {
+                        <option [ngValue]="wordType.id">{{ wordType.name }}</option>
+                      }
+                    </select>
+                    <button class="add-word-button" type="button" [disabled]="!newWordTypeId()" (click)="addTypedWord()">
+                      <lucide-angular [name]="'Plus'" aria-hidden="true"></lucide-angular> Add
+                    </button>
+                  </div>
+                } @else if (!suggestions().length) {
+                  <p class="suggestion-note">@if (activeType()) { No matching word found in the library. Add a new word above. } @else { Choose a category first to add a new word. }</p>
+                }
+              }
+            </div>
+          }
+        </div>
+        <div class="sentence-stage" [class.has-words]="selected().length > 0" [class.drop-target]="dragOver()" (dragover)="allowWordDrop($event)" (drop)="dropWord($event)" (dragleave)="dragOver.set(false)">
+          @if (editWordsLoading()) {
+            <div class="stage-empty" role="status">
+              <p>Loading sentence words…</p>
+            </div>
+          } @else if (selected().length) {
+            <div class="word-chips" aria-label="Sentence words">
+              @for (word of selected(); track $index) {
+                <div class="sentence-word">
+                  <span>{{ word.value }}</span>
+                  <div class="word-actions">
+                    <button
+                      aria-label="Move word earlier"
+                      [disabled]="$first"
+                      (click)="moveWord($index, -1)"
+                    >
+                      <lucide-angular
+                        [name]="'ChevronLeft'"
+                        aria-hidden="true"
+                      ></lucide-angular></button
+                    ><button
+                      aria-label="Move word later"
+                      [disabled]="$last"
+                      (click)="moveWord($index, 1)"
+                    >
+                      <lucide-angular
+                        [name]="'ChevronRight'"
+                        aria-hidden="true"
+                      ></lucide-angular></button
+                    ><button
+                      aria-label="Remove word"
+                      (click)="removeWord($index)"
+                    >
+                      <lucide-angular
+                        [name]="'X'"
+                        aria-hidden="true"
+                      ></lucide-angular>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+            <p class="sentence-preview">{{ preview }}</p>
+          } @else {
+            <div class="stage-empty">
+              <span class="empty-orbit"
+                ><lucide-angular
+                  [name]="'PenLine'"
+                  aria-hidden="true"
+                ></lucide-angular
+              ></span>
+              <p>Your sentence starts here</p>
+              <span>Drag words here, or click a library word to add it.</span>
+            </div>
+          }
+        </div>
+        <div class="builder-footer">
+          <span
+            >{{ selected().length }}
+            {{ selected().length === 1 ? "word" : "words" }} in your
+            sentence</span
+          ><button
+            mat-flat-button
+            color="primary"
+            class="save-button"
+            [disabled]="!selected().length || saving()"
+            (click)="saveSentence()"
+          >
+            @if (saving()) {
+              <span class="save-spinner" aria-hidden="true"></span> Saving…
+            } @else {
+              <lucide-angular
+                [name]="editingId() ? 'Bookmark' : 'BookmarkPlus'"
+                aria-hidden="true"
+              ></lucide-angular>{{ editingId() ? "Update sentence" : "Save sentence" }}
+            }
+          </button>
+        </div>
+      </aside>
+    </section>
+  } @else {
+    <section class="saved-view">
+      <div class="saved-heading">
+        <div>
+          <div class="eyebrow">Your writing</div>
+          <h2>Saved sentences</h2>
+          <p>Sentences you have saved are listed here.</p>
+        </div>
+        <button
+          mat-flat-button
+          class="new-sentence"
+          (click)="activeTab.set('build')"
+        >
+          <lucide-angular [name]="'Plus'" aria-hidden="true"></lucide-angular>
+          New sentence
+        </button>
+      </div>
+      @if (sentencesError()) {
+        <div class="saved-state error-message" role="alert">
+          <span>{{ sentencesError() }}</span
+          ><button class="retry-button" (click)="loadSentences()">
+            Try again
+          </button>
+        </div>
+      } @else if (sentencesLoading()) {
+        <p class="saved-state" role="status">Loading saved sentences…</p>
+      } @else {
+        <div class="saved-table-head">
+          <span>Sentence</span><span>Added</span><span></span>
+        </div>
+        @for (sentence of sentences(); track sentence.id; let index = $index) {
+          <article class="saved-row">
+            <span class="saved-index">{{
+              (index + 1).toString().padStart(2, "0")
+            }}</span>
+            <div class="saved-sentence">
+              <p>{{ sentence.text }}</p>
+              <div class="saved-tags">
+                <span class="tag tag-green">Saved</span
+                ><span
+                  >{{
+                    sentence.word_ids.length || sentence.text.split(" ").length
+                  }}
+                  words</span
+                >
+              </div>
+            </div>
+            <time>{{ sentence.created_at | date: "MMM d, y, h:mm a" }}</time
+            ><button
+              class="icon-button edit-button"
+              (click)="editSentence(sentence)"
+              [attr.aria-label]="'Edit sentence: ' + sentence.text"
+              title="Edit sentence"
+            >
+              <lucide-angular
+                [name]="'Pencil'"
+                aria-hidden="true"
+              ></lucide-angular>
+            </button>
+          </article>
+        } @empty {
+          <div class="saved-empty">
+            <lucide-angular
+              [name]="'Bookmark'"
+              aria-hidden="true"
+            ></lucide-angular>
+            <h3>Nothing saved just yet</h3>
+            <p>Build a sentence and save it here.</p>
+            <button mat-stroked-button (click)="activeTab.set('build')">
+              Start writing
+            </button>
+          </div>
+        }
+      }
+    </section>
+  }
+  @if (guideOpen()) {
+    <div class="guide-backdrop" (click)="closeGuide()">
+      <section class="guide-modal" role="dialog" aria-modal="true" aria-labelledby="guide-title" (click)="$event.stopPropagation()">
+        <div class="guide-modal-heading">
+          <div>
+            <div class="eyebrow">A quick tour</div>
+            <h2 id="guide-title">Build a sentence</h2>
+          </div>
+          <button class="icon-button" type="button" aria-label="Close guide" title="Close guide" (click)="closeGuide()">
+            <lucide-angular [name]="'X'" aria-hidden="true"></lucide-angular>
+          </button>
+        </div>
+        <p class="guide-intro">Choose words, arrange them, then save your sentence to your library.</p>
+        <div class="guide-steps">
+          <article class="guide-step">
+            <span class="guide-step-number">1</span>
+            <div class="guide-step-copy"><h3>Choose a word category</h3><p>Pick nouns, verbs, or another category from the dropdown.</p></div>
+          </article>
+          <article class="guide-step">
+            <span class="guide-step-number">2</span>
+            <div class="guide-step-copy"><h3>Add words to your sentence</h3><p>Click a library word, type to see suggestions, or drag a word across.</p></div>
+          </article>
+          <article class="guide-step">
+            <span class="guide-step-number">3</span>
+            <div class="guide-step-copy"><h3>Arrange and save</h3><p>Move words into order, then save. Your words are remembered for next time.</p></div>
+          </article>
+        </div>
+        <div class="guide-actions">
+          <button class="guide-skip" type="button" (click)="closeGuide()">Skip</button>
+          <button class="guide-start" type="button" (click)="closeGuide()">Start building</button>
+        </div>
+      </section>
+    </div>
+  }
+</main>
