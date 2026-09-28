@@ -6,7 +6,11 @@ import { Sentence, SentencePayload, Word, WordType } from '../models';
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api';
+  private readonly baseUrl =
+    typeof window !== 'undefined' &&
+    window.location.hostname.includes('azurewebsites.net')
+      ? 'https://clint-sentence-api-2026-gjafc5cjduargga9.southafricanorth-01.azurewebsites.net/api'
+      : '/api';
 
   getWordTypes(): Observable<WordType[]> {
     return this.http.get<WordType[]>(`${this.baseUrl}/word-types`);
