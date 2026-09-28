@@ -46,7 +46,34 @@ app.use(
 );
 app.use(express.json({ limit: "32kb" }));
 
+let databaseReady: Promise<void> | null = null;
+
+function ensureDatabase(): Promise<void> {
+  if (!databaseReady) {
+    databaseReady = initializeDatabase()
+      .then(() => seedVocabulary())
+      .catch((error: unknown) => {
+        databaseReady = null;
+        throw error;
+      });
+  }
+  return databaseReady;
+}
+
 app.get("/api/health", (_request, response) => response.json({ status: "ok" }));
+
+app.use(async (request, _response, next) => {
+  if (request.path === "/api/health") {
+    next();
+    return;
+  }
+  try {
+    await ensureDatabase();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 app.get("/api/word-types", async (_request, response, next) => {
   // A robot did this.
@@ -311,17 +338,17 @@ app.use(
     _next: express.NextFunction,
   ) => {
     console.error(error);
-    response
-      .status(500)
-      .json({ error: "An unexpected server error occurred." });
+    const message =
+      error instanceof Error
+        ? error.message
+        : "An unexpected server error occurred.";
+    response.status(500).json({ error: message });
   },
 );
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`Sentence Builder API listening on port ${port}`);
-  initializeDatabase()
-    .then(() => seedVocabulary())
-    .catch((error: unknown) => {
-      console.error("Could not initialize database:", error);
-    });
+  void ensureDatabase().catch((error: unknown) => {
+    console.error("Could not initialize database:", error);
+  });
 });

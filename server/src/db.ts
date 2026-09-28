@@ -7,6 +7,7 @@ const connectionString =
 
 export const pool = new Pool({
   connectionString,
+  connectionTimeoutMillis: 20_000,
   ssl: connectionString.includes("azure.com")
     ? { rejectUnauthorized: false }
     : undefined,
