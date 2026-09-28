@@ -23,17 +23,52 @@ jobs:
           cache: npm
           cache-dependency-path: client/package-lock.json
 
-      - name: Install and build
+      - name: Install and build Angular
         working-directory: client
         run: |
           npm ci
           npm run build
 
+      - name: Package static site with a Node host
+        run: |
+          mkdir -p web
+          cp -r client/dist/client/browser/. web/
+          cat > web/package.json << 'EOF'
+          {
+            "name": "sentence-garden-web",
+            "private": true,
+            "scripts": {
+              "start": "node server.js"
+            },
+            "dependencies": {
+              "serve-handler": "6.1.6"
+            }
+          }
+          EOF
+          cat > web/server.js << 'EOF'
+          const http = require("http");
+          const handler = require("serve-handler");
+          const port = Number(process.env.PORT || 8080);
+          http
+            .createServer((request, response) =>
+              handler(request, response, {
+                public: ".",
+                rewrites: [{ source: "**", destination: "/index.html" }],
+              }),
+            )
+            .listen(port, "0.0.0.0", () => {
+              console.log("Static site listening on " + port);
+            });
+          EOF
+          cd web
+          npm install --omit=dev
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: client
-          path: client/dist/client/browser
+          path: web
+          include-hidden-files: true
 
   deploy:
     needs: build
@@ -43,7 +78,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: client
-          path: site
+          path: web
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
@@ -51,4 +86,4 @@ jobs:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           slot-name: production
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_CLIENT }}
-          package: site
+          package: web
