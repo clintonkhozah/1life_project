@@ -28,6 +28,8 @@ Compose builds and runs PostgreSQL, the Express API, and the Angular app served 
 - API health: `http://localhost:3001/api/health`
 - PostgreSQL: `localhost:5432`
 
+- The live and deployed web app: `https://clint-sentence-web-2026-ana0gpdehthue3g0.southafricanorth-01.azurewebsites.net/`
+
 The Compose frontend and API use host ports `4201` and `3001` so they can run alongside the local development servers on `4200` and `3000`. The frontend calls the API through its internal `/api` proxy.
 
 Stop the containers with `Ctrl+C`, or run `docker compose down` in another terminal. The database volume is preserved. Use `docker compose down -v` only if you intentionally want to delete the local database data. See live service output with `docker compose logs -f`.
