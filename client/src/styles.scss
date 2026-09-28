@@ -339,6 +339,8 @@ lucide-angular svg {
   margin: 0;
 }
 .sentence-input {
+  position: relative;
+  z-index: 6;
   margin: 10px 22px 14px;
 }
 .sentence-input .search-box {
@@ -399,7 +401,7 @@ lucide-angular svg {
 }
 .suggestion-panel {
   position: absolute;
-  z-index: 3;
+  z-index: 20;
   top: calc(100% + 4px);
   right: 0;
   left: 0;
@@ -749,6 +751,7 @@ lucide-angular svg {
 .sentence-panel {
   display: flex;
   flex-direction: column;
+  overflow: visible;
 }
 .live-mark {
   padding: 3px 6px;
