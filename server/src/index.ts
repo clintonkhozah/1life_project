@@ -317,14 +317,11 @@ app.use(
   },
 );
 
-initializeDatabase()
-  .then(() => seedVocabulary())
-  .then(() => {
-    app.listen(port, "0.0.0.0", () =>
-      console.log(`Sentence Builder API listening on port ${port}`),
-    );
-  })
-  .catch((error: unknown) => {
-    console.error("Could not initialize database:", error);
-    process.exit(1);
-  });
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Sentence Builder API listening on port ${port}`);
+  initializeDatabase()
+    .then(() => seedVocabulary())
+    .catch((error: unknown) => {
+      console.error("Could not initialize database:", error);
+    });
+});
