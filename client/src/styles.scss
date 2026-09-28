@@ -444,8 +444,12 @@ lucide-angular svg {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.suggestion-word strong {
-  color: var(--green);
+.suggestion-word strong,
+.suggestion-match {
+  color: #1a7f37;
+  background: #dafbe1;
+  border-radius: 4px;
+  padding: 0 2px;
   font-size: 20px;
   font-weight: 700;
 }

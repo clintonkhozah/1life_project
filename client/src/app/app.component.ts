@@ -218,6 +218,16 @@ export class AppComponent {
     return word.word_type_name ?? this.types().find((type) => type.id === word.word_type_id)?.name ?? '';
   }
 
+  matchedPart(value: string, query: string): string {
+    const prefix = query.trim();
+    if (!prefix || !value.toLowerCase().startsWith(prefix.toLowerCase())) return '';
+    return value.slice(0, prefix.length);
+  }
+
+  unmatchedPart(value: string, query: string): string {
+    return value.slice(this.matchedPart(value, query).length);
+  }
+
   clearWordInput(): void {
     this.search.set('');
     this.suggestions.set([]);

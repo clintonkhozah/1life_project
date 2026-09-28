@@ -147,10 +147,11 @@
           <label class="search-box">
             <lucide-angular [name]="'PenLine'" aria-hidden="true"></lucide-angular>
             <input
-              type="search"
+              type="text"
               placeholder="Type a word to build your sentence…"
               [ngModel]="search()"
               (ngModelChange)="onWordInput($event)"
+              (input)="onWordInput($any($event.target).value)"
               aria-label="Type a word to add to your sentence"
               role="combobox"
               aria-autocomplete="list"
@@ -175,7 +176,7 @@
               } @else {
                 @for (suggestion of suggestions(); track suggestion.id) {
                   <button class="suggestion-option" type="button" role="option" (click)="addWord(suggestion); clearWordInput()">
-                    <span class="suggestion-word"><strong>{{ suggestion.value.slice(0, search().trim().length) }}</strong>{{ suggestion.value.slice(search().trim().length) }}</span>
+                    <span class="suggestion-word"><span class="suggestion-match">{{ matchedPart(suggestion.value, search()) }}</span>{{ unmatchedPart(suggestion.value, search()) }}</span>
                     <span class="suggestion-category">{{ wordTypeName(suggestion) }}</span>
                     @if (suggestion.usage_count) {
                       <span class="usage-count">Used {{ suggestion.usage_count }} times</span>
