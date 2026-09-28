@@ -7,8 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  # Replace this with your API App Service name (the name in Azure, not the URL).
-  AZURE_WEBAPP_NAME: your-api-app-name
+  AZURE_WEBAPP_NAME: clint-sentence-api-2026-gjafc5cjduargga9
   NODE_VERSION: "22.x"
 
 jobs:
