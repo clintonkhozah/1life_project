@@ -1,10 +1,15 @@
 import "dotenv/config";
 import { Pool } from "pg";
 
+const connectionString =
+  process.env.DATABASE_URL ??
+  "postgres://sentence_builder:sentence_builder_dev@localhost:5432/sentence_builder";
+
 export const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ??
-    "postgres://sentence_builder:sentence_builder_dev@localhost:5432/sentence_builder",
+  connectionString,
+  ssl: connectionString.includes("azure.com")
+    ? { rejectUnauthorized: false }
+    : undefined,
 });
 
 export async function initializeDatabase(): Promise<void> {

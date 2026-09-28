@@ -39,8 +39,7 @@ const vocabulary: Record<string, string[]> = {
   Exclamation: ["oh", "aha", "wow", "hey", "hurray"],
 };
 
-async function seed(): Promise<void> {
-  // A robot did this.
+export async function seedVocabulary(): Promise<void> {
   await initializeDatabase();
   for (const [name, words] of Object.entries(vocabulary)) {
     const { rows } = await pool.query<{ id: number }>(
@@ -57,9 +56,12 @@ async function seed(): Promise<void> {
   console.log("Database schema and vocabulary are ready.");
 }
 
-seed()
-  .catch((error: unknown) => {
-    console.error("Database seed failed:", error);
-    process.exitCode = 1;
-  })
-  .finally(() => pool.end());
+const startedDirectly = /seed\.[cm]?js$/i.test(process.argv[1] ?? "");
+if (startedDirectly) {
+  seedVocabulary()
+    .catch((error: unknown) => {
+      console.error("Database seed failed:", error);
+      process.exitCode = 1;
+    })
+    .finally(() => pool.end());
+}

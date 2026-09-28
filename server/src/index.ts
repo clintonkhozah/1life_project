@@ -2,6 +2,7 @@ import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import { initializeDatabase, pool } from "./db";
+import { seedVocabulary } from "./seed";
 
 interface SentenceWordInput {
   word_type_id: number;
@@ -19,12 +20,28 @@ interface SentenceRow {
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
 
+const allowedOrigins = new Set(
+  [
+    process.env.CLIENT_ORIGIN,
+    "http://localhost:4200",
+    "http://127.0.0.1:4200",
+    "https://clint-sentence-web-2026-ana0gpdehthue3g0.southafricanorth-01.azurewebsites.net",
+  ].filter((origin): origin is string => Boolean(origin)),
+);
+
 app.use(
   cors({
-    origin: [
-      process.env.CLIENT_ORIGIN ?? "http://localhost:4200",
-      "http://127.0.0.1:4200",
-    ],
+    origin(origin, callback) {
+      if (
+        !origin ||
+        allowedOrigins.has(origin) ||
+        origin.endsWith(".azurewebsites.net")
+      ) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
   }),
 );
 app.use(express.json({ limit: "32kb" }));
@@ -301,9 +318,10 @@ app.use(
 );
 
 initializeDatabase()
+  .then(() => seedVocabulary())
   .then(() => {
-    app.listen(port, () =>
-      console.log(`Sentence Builder API listening on http://localhost:${port}`),
+    app.listen(port, "0.0.0.0", () =>
+      console.log(`Sentence Builder API listening on port ${port}`),
     );
   })
   .catch((error: unknown) => {
